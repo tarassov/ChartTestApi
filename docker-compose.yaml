@@ -1,0 +1,57 @@
+version: "3.7"
+services:
+  chart_test_db:
+    container_name: ${DbNetAlias}
+    image: postgres:16
+    restart: always
+    ports:
+      - ${DbNetPort}:5432
+    environment:
+      - POSTGRES_USER=${DbUsername}
+      - POSTGRES_PASSWORD=${DbPassword}
+      - POSTGRES_DB=${Database}
+    volumes:
+      - chart_test_db:/var/lib/postgresql/data
+    networks:
+      chart_test_back:
+        aliases:
+          - ${DbNetAlias}
+
+  chart_test_db_manage:
+    container_name: chart_test_db_manage
+    image: dpage/pgadmin4:latest
+    restart: always
+    ports:
+      - ${DbAdminNetPort}:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PgAdminEmail}
+      - PGADMIN_DEFAULT_PASSWORD=${PgAdminPassword}
+    networks:
+      -  chart_test_back
+
+
+  chart_test_web:
+    container_name: chart_test_web
+    build:
+      context: ./
+      dockerfile: ./ChartTestApi/Dockerfile
+    restart: always
+    ports:
+      - ${WebNetPort}:8080
+      - 8081:8081
+    environment:
+      - ConnectionStrings__DefaultCOnnection=Host=${DbNetAlias};Port=${DbNetPort};Database=${Database};Username=${DbUsername};Password=${DbPassword};
+    depends_on:
+      - chart_test_db
+    networks:
+      -  chart_test_back
+
+networks:
+  chart_test_back:
+    name: chart_test_back
+    driver: bridge
+
+volumes:
+  chart_test_db:
+    name: chart_test_db
+
